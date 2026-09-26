@@ -8,6 +8,8 @@ import session from 'express-session';
 import passport from './config/passport';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
+import adjustmentRoutes from './routes/adjustments';
+import inventoryRoutes from './routes/inventory';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -42,6 +44,8 @@ app.get('/health', (req, res) => {
 // Authentication routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/adjustments', adjustmentRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 app.listen(PORT, () => {
   console.log(`StockSense API running on port ${PORT}`);

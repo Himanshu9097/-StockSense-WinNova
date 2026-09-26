@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { signup, login, logout, refresh, verifyEmail, resendVerification, forgotPassword, verifyOtp, resetPassword, getMe, getSessions, revokeSession } from '../controllers/authController';
+import { requireAuth } from '../middlewares/auth';
 
 const router = Router();
 
-// Routes
+// Public Routes
 router.post('/signup', signup);
 router.post('/login', login);
 router.post('/logout', logout);
@@ -13,9 +14,11 @@ router.post('/resend-verification', resendVerification);
 router.post('/forgot-password', forgotPassword);
 router.post('/verify-otp', verifyOtp);
 router.post('/reset-password', resetPassword);
-router.get('/me', getMe);
-router.get('/sessions', getSessions);
-router.delete('/sessions/:id', revokeSession);
+
+// Protected Routes
+router.get('/me', requireAuth as any, getMe as any);
+router.get('/sessions', requireAuth as any, getSessions as any);
+router.delete('/sessions/:id', requireAuth as any, revokeSession as any);
 
 import passport from '../config/passport';
 import jwt from 'jsonwebtoken';
