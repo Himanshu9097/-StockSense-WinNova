@@ -62,3 +62,4 @@ export * from './Product';
 export * from './Location';
 export * from './inventory';
 export * from './Receiving';
+export * from './Delivery';

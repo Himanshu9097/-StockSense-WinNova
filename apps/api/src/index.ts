@@ -1,5 +1,12 @@
 import dotenv from 'dotenv';
 dotenv.config();
+import dns from 'dns';
+
+try {
+  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+} catch {
+  // Ignore
+}
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -11,6 +18,7 @@ import userRoutes from './routes/users';
 import adjustmentRoutes from './routes/adjustments';
 import inventoryRoutes from './routes/inventory';
 import receivingRoutes from './routes/receiving';
+import deliveryRoutes from './routes/deliveries';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -48,6 +56,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/adjustments', adjustmentRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/receiving', receivingRoutes);
+app.use('/api/deliveries', deliveryRoutes);
 
 app.listen(PORT, () => {
   console.log(`StockSense API running on port ${PORT}`);

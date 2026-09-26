@@ -40,25 +40,122 @@ export const getReceiptById = async (req: AuthRequest, res: Response) => {
 
 export const createReceipt = async (req: AuthRequest, res: Response) => {
   try {
-    const { warehouseId, supplier, reference, lines, notes } = req.body;
-    
+    const { warehouseId, locationId, supplier, reference, lines, notes, draft } = req.body;
+
+    if (!warehouseId || !lines || lines.length === 0) {
+      return res.status(400).json({ error: 'Warehouse and at least one line are required.' });
+    }
+
     const receiptNumber = `RCV-${Date.now()}`;
-    
+
     const receipt = new Receipt({
       receiptNumber,
       warehouseId,
+      locationId,
       supplier,
       reference,
       lines,
       notes,
       createdBy: req.user!.userId,
-      status: 'EXPECTED'
+      status: draft ? 'DRAFT' : 'EXPECTED'
     });
-    
+
     await receipt.save();
     res.status(201).json(receipt);
   } catch (error: any) {
-    res.status(500).json({ error: 'Failed to create receipt' });
+    res.status(500).json({ error: error.message || 'Failed to create receipt' });
+  }
+};
+
+// Validate receipt: increase stock + write ledger (idempotent guard)
+export const validateReceipt = async (req: AuthRequest, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const receipt = await Receipt.findById(req.params.id)
+      .populate('lines.productId', 'name sku')
+      .session(session);
+
+    if (!receipt) throw new Error('Receipt not found');
+
+    if (receipt.status === 'COMPLETED') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ error: 'This receipt has already been validated.' });
+    }
+    if (receipt.status === 'CANCELLED') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ error: 'Cannot validate a cancelled receipt.' });
+    }
+
+    for (const line of receipt.lines) {
+      const qty = line.receivedQuantity > 0 ? line.receivedQuantity : line.expectedQuantity;
+      if (qty <= 0) continue;
+
+      // Use line-level locationId, fallback to receipt-level locationId
+      const locationId = (line as any).locationId || (receipt as any).locationId;
+      if (!locationId) throw new Error(`No location assigned for product ${(line.productId as any)?.name || line.productId}. Please select a location.`);
+
+      let balance = await InventoryBalance.findOne({
+        productId: line.productId,
+        locationId,
+        lotId: line.lotId || null,
+        serialId: line.serialId || null
+      }).session(session);
+
+      const beforeQty = balance ? balance.onHand : 0;
+
+      if (!balance) {
+        balance = new InventoryBalance({
+          productId: line.productId,
+          warehouseId: receipt.warehouseId,
+          locationId,
+          lotId: line.lotId,
+          serialId: line.serialId,
+          onHand: 0
+        });
+      }
+
+      balance.onHand += qty;
+      await balance.save({ session });
+
+      const ledger = new StockLedger({
+        transactionId: `RCV-TXN-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
+        operation: 'RECEIPT',
+        productId: line.productId,
+        lotId: line.lotId,
+        serialId: line.serialId,
+        destinationLocationId: locationId,
+        quantity: qty,
+        beforeQuantity: beforeQty,
+        afterQuantity: balance.onHand,
+        referenceType: 'Receipt',
+        referenceId: receipt._id,
+        reason: `Receipt validated: ${receipt.receiptNumber}`,
+        performedBy: req.user!.userId
+      });
+      await ledger.save({ session });
+
+      // Mark received quantities
+      line.receivedQuantity = qty;
+      line.acceptedQuantity = qty;
+    }
+
+    receipt.status = 'COMPLETED';
+    receipt.completedAt = new Date();
+    await receipt.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    const populated = await Receipt.findById(receipt._id)
+      .populate('lines.productId', 'name sku');
+    res.status(200).json({ message: 'Receipt validated. Stock updated.', receipt: populated });
+  } catch (error: any) {
+    await session.abortTransaction();
+    session.endSession();
+    res.status(400).json({ error: error.message || 'Unable to complete the operation. Please try again.' });
   }
 };
 

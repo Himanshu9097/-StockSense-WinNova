@@ -128,7 +128,6 @@ export default function Login() {
     );
   }
 
-  const fontRem = Math.min(Math.max(leftWidth * 0.16 + 1.0, 1.5), 8.5);
   const letterSpacingEm = Math.min(Math.max(leftWidth * 0.009 + 0.1, 0.12), 0.45);
 
   return (

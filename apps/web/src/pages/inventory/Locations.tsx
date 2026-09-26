@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../api';
-import { Map, Search, Plus, Filter, Warehouse, MapPin } from 'lucide-react';
+import { Map, Search, Plus, MapPin } from 'lucide-react';
 
 export default function Locations() {
   const [searchTerm, setSearchTerm] = useState('');

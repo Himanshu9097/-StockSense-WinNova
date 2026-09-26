@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
   Package, 
   Map, 
@@ -9,7 +9,9 @@ import {
   LogOut,
   Bell,
   Search,
-  ArrowDownToLine
+  ArrowDownToLine,
+  Truck,
+  ClipboardList
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
@@ -29,6 +31,8 @@ export default function MaterialLayout() {
     { icon: <Package />, label: 'Inventory', path: '/products' },
     { icon: <Map />, label: 'Locations', path: '/locations' },
     { icon: <ArrowDownToLine />, label: 'Receipts', path: '/receipts' },
+    { icon: <Truck />, label: 'Deliveries', path: '/deliveries' },
+    { icon: <ClipboardList />, label: 'Adjustments', path: '/adjustments' },
     { icon: <Package />, label: 'Putaway', path: '/putaway' },
     { icon: <ArrowRightLeft />, label: 'Transfers', path: '/transfers' },
   ];
@@ -136,7 +140,7 @@ function NavItem({ icon, label, active = false, badge, onClick }: { icon: React.
         : 'text-md-surface-variant hover:text-md-on-background hover:bg-md-on-background/5'
     }`}>
       <div className="flex items-center gap-5">
-        {React.cloneElement(icon as React.ReactElement, { className: `w-6 h-6 ${active ? 'text-md-primary' : ''}` })}
+        {React.cloneElement(icon as React.ReactElement<any>, { className: `w-6 h-6 ${active ? 'text-md-primary' : ''}` })}
         {label}
       </div>
       {badge && (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { 
   Package, 
   Map, 
@@ -11,7 +11,6 @@ import {
   Search,
   CheckCircle2,
   Clock,
-  Menu,
   ArrowDownToLine
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -20,12 +19,6 @@ import { useNavigate } from 'react-router-dom';
 export default function Dashboard() {
   const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
-  const [time, setTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   const handleLogout = () => {
     logoutUser();
@@ -195,7 +188,7 @@ function NavItem({ icon, label, active = false, badge, onClick }: { icon: React.
         : 'text-md-surface-variant hover:text-md-on-background hover:bg-md-on-background/5'
     }`}>
       <div className="flex items-center gap-5">
-        {React.cloneElement(icon as React.ReactElement, { className: `w-6 h-6 ${active ? 'text-md-primary' : ''}` })}
+        {React.cloneElement(icon as React.ReactElement<any>, { className: `w-6 h-6 ${active ? 'text-md-primary' : ''}` })}
         {label}
       </div>
       {badge && (

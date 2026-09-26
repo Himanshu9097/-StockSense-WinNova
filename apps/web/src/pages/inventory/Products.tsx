@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../api';
-import { Package, Search, Plus, Filter, ArrowUpDown } from 'lucide-react';
+import { Package, Search, Plus, Filter } from 'lucide-react';
 
 export default function Products() {
   const [searchTerm, setSearchTerm] = useState('');

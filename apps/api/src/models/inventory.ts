@@ -34,7 +34,7 @@ const stockLedgerSchema = new mongoose.Schema({
   transactionId: { type: String, required: true, unique: true }, 
   operation: { 
     type: String, 
-    enum: ['RECEIPT', 'PUTAWAY', 'TRANSFER', 'RESERVATION', 'RELEASE_RESERVATION', 'PICK', 'PACK', 'SHIP', 'RETURN', 'ADJUSTMENT', 'SCRAP', 'QUARANTINE'],
+    enum: ['RECEIPT', 'DELIVERY', 'PUTAWAY', 'TRANSFER', 'RESERVATION', 'RELEASE_RESERVATION', 'PICK', 'PACK', 'SHIP', 'RETURN', 'ADJUSTMENT', 'SCRAP', 'QUARANTINE'],
     required: true 
   },
   

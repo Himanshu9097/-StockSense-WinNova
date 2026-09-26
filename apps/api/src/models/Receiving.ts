@@ -7,12 +7,14 @@ const receiptLineSchema = new mongoose.Schema({
   acceptedQuantity: { type: Number, default: 0 },
   rejectedQuantity: { type: Number, default: 0 },
   lotId: { type: String },
-  serialId: { type: String }
+  serialId: { type: String },
+  locationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Location' }
 });
 
 const receiptSchema = new mongoose.Schema({
   receiptNumber: { type: String, required: true, unique: true },
   warehouseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Warehouse', required: true },
+  locationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Location' },
   supplier: { type: String },
   reference: { type: String }, // e.g. PO number
   
