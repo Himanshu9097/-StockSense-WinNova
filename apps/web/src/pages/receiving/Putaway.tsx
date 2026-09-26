@@ -6,25 +6,20 @@ import { Package, Search, MapPin, CheckCircle2 } from 'lucide-react';
 export default function Putaway() {
   const [searchTerm, setSearchTerm] = useState('');
   
-  // For MVP, we might just fetch tasks directly or use a mock. 
-  // We'd need an endpoint for `GET /api/receiving/tasks` which wasn't built yet, so I'll mock the UI structure based on the schema.
-  
-  const mockTasks = [
-    {
-      _id: 'PTW-1001',
-      productId: { name: 'Steel Rod', sku: 'SR-100' },
-      quantity: 50,
-      suggestedLocationId: { code: 'WH1-ZA-R1-S1-B1' },
-      status: 'PENDING'
-    },
-    {
-      _id: 'PTW-1002',
-      productId: { name: 'Copper Wire', sku: 'CW-200' },
-      quantity: 20,
-      suggestedLocationId: { code: 'WH1-ZA-R1-S1-B2' },
-      status: 'PENDING'
+  const { data: tasks = [], isLoading, refetch } = useQuery({
+    queryKey: ['putaway-tasks'],
+    queryFn: async () => {
+      const res = await axios.get('http://localhost:5000/api/receiving/tasks', {
+        withCredentials: true
+      });
+      return res.data;
     }
-  ];
+  });
+
+  const filteredTasks = tasks.filter((t: any) => 
+    t.productId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    t.productId?.sku?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="flex flex-col h-full bg-md-surface-container rounded-[40px] shadow-sm overflow-hidden">
@@ -49,17 +44,45 @@ export default function Putaway() {
       </div>
 
       <div className="flex-1 overflow-auto p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {mockTasks.map((task: any) => (
-            <TaskCard key={task._id} task={task} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-md-primary"></div>
+          </div>
+        ) : filteredTasks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-md-surface-variant">
+            <p className="text-xl font-medium text-md-on-surface">No pending tasks</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {filteredTasks.map((task: any) => (
+              <TaskCard key={task._id} task={task} refetch={refetch} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function TaskCard({ task }: { task: any }) {
+function TaskCard({ task, refetch }: { task: any, refetch: () => void }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleComplete = async () => {
+    setLoading(true);
+    try {
+      await axios.post('http://localhost:5000/api/receiving/putaway', {
+        taskId: task._id,
+        actualLocationId: task.suggestedLocationId._id
+      }, { withCredentials: true });
+      refetch();
+    } catch (error) {
+      console.error(error);
+      alert('Failed to complete putaway');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="bg-md-surface-container-low rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer border border-transparent hover:border-md-primary/20 flex flex-col">
       <div className="flex items-start justify-between mb-4">
@@ -71,8 +94,8 @@ function TaskCard({ task }: { task: any }) {
         </span>
       </div>
       
-      <h3 className="text-xl font-bold text-md-on-background tracking-tight">{task.productId.name}</h3>
-      <p className="text-md-surface-variant font-medium mt-1">{task.productId.sku}</p>
+      <h3 className="text-xl font-bold text-md-on-background tracking-tight">{task.productId?.name}</h3>
+      <p className="text-md-surface-variant font-medium mt-1">{task.productId?.sku}</p>
       
       <div className="mt-4 pt-4 border-t border-md-outline/10 flex items-center justify-between">
         <div>
@@ -83,13 +106,22 @@ function TaskCard({ task }: { task: any }) {
           <p className="text-[10px] font-bold text-md-surface-variant uppercase tracking-wider mb-1 flex items-center gap-1 justify-end">
             <MapPin className="w-3 h-3" /> Suggested Bin
           </p>
-          <p className="text-lg font-bold text-md-primary">{task.suggestedLocationId.code}</p>
+          <p className="text-lg font-bold text-md-primary">{task.suggestedLocationId?.code}</p>
         </div>
       </div>
       
-      <button className="mt-6 w-full h-12 flex items-center justify-center gap-2 bg-md-primary text-md-on-primary font-bold rounded-full shadow-md hover:bg-md-primary/90 active:scale-95 transition-all duration-300">
-        <CheckCircle2 className="w-5 h-5" />
-        Confirm Putaway
+      <button 
+        onClick={handleComplete}
+        disabled={loading}
+        className="mt-6 w-full h-12 flex items-center justify-center gap-2 bg-md-primary text-md-on-primary font-bold rounded-full shadow-md hover:bg-md-primary/90 active:scale-95 transition-all duration-300 disabled:opacity-50">
+        {loading ? (
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+        ) : (
+          <>
+            <CheckCircle2 className="w-5 h-5" />
+            Confirm Putaway
+          </>
+        )}
       </button>
     </div>
   );

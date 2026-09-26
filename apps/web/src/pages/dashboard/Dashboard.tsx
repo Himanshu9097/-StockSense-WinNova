@@ -11,7 +11,8 @@ import {
   Search,
   CheckCircle2,
   Clock,
-  Menu
+  Menu,
+  ArrowDownToLine
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -50,10 +51,12 @@ export default function Dashboard() {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
-          <NavItem icon={<BarChart2 />} label="Overview" active />
-          <NavItem icon={<Package />} label="Inventory" />
-          <NavItem icon={<Map />} label="Locations" />
-          <NavItem icon={<ArrowRightLeft />} label="Transfers" />
+          <NavItem icon={<BarChart2 />} label="Overview" active onClick={() => navigate('/dashboard')} />
+          <NavItem icon={<Package />} label="Inventory" onClick={() => navigate('/products')} />
+          <NavItem icon={<Map />} label="Locations" onClick={() => navigate('/locations')} />
+          <NavItem icon={<ArrowDownToLine />} label="Receipts" onClick={() => navigate('/receipts')} />
+          <NavItem icon={<Package />} label="Putaway" onClick={() => navigate('/putaway')} />
+          <NavItem icon={<ArrowRightLeft />} label="Transfers" onClick={() => navigate('/transfers')} />
           
           <div className="pt-8 pb-3 px-4 text-xs font-bold text-md-surface-variant uppercase tracking-wider">
             Management
@@ -184,9 +187,9 @@ export default function Dashboard() {
 
 // Sub-components
 
-function NavItem({ icon, label, active = false, badge }: { icon: React.ReactNode, label: string, active?: boolean, badge?: string }) {
+function NavItem({ icon, label, active = false, badge, onClick }: { icon: React.ReactNode, label: string, active?: boolean, badge?: string, onClick?: () => void }) {
   return (
-    <button className={`w-full flex items-center justify-between px-6 h-16 !rounded-full text-lg transition-all duration-300 active:scale-95 outline-none focus:outline-none border-none ${
+    <button onClick={onClick} className={`w-full flex items-center justify-between px-6 h-16 !rounded-full text-lg transition-all duration-300 active:scale-95 outline-none focus:outline-none border-none ${
       active 
         ? 'bg-md-secondary-container text-md-on-secondary-container font-bold shadow-sm' 
         : 'text-md-surface-variant hover:text-md-on-background hover:bg-md-on-background/5'

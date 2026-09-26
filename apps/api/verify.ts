@@ -122,6 +122,7 @@ async function runVerification() {
   } catch (error) {
     console.error('\n❌ Verification Failed with Error:', error);
   } finally {
+    /*
     console.log('\n🧹 Cleaning up test data...');
     await Warehouse.deleteOne({ code: 'VWH-1' });
     await Zone.deleteOne({ code: 'VZ-1' });
@@ -131,7 +132,7 @@ async function runVerification() {
     await PutawayTask.deleteMany({ quantity: 50 });
     await InventoryBalance.deleteMany({ onHand: 50 });
     await StockLedger.deleteMany({ operation: 'PUTAWAY', quantity: 50 });
-    
+    */
     await mongoose.disconnect();
     console.log('👋 Disconnected.');
   }

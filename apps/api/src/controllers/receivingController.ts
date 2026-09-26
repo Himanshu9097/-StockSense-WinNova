@@ -13,6 +13,18 @@ export const getReceipts = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const getPutawayTasks = async (req: AuthRequest, res: Response) => {
+  try {
+    const tasks = await PutawayTask.find({ status: { $ne: 'COMPLETED' } })
+      .populate('productId', 'name sku')
+      .populate('suggestedLocationId', 'code type')
+      .sort({ createdAt: -1 });
+    res.status(200).json(tasks);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch tasks' });
+  }
+};
+
 export const getReceiptById = async (req: AuthRequest, res: Response) => {
   try {
     const receipt = await Receipt.findById(req.params.id)
