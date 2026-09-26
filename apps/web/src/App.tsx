@@ -23,8 +23,8 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route element={<Layout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/adjustments" element={<Adjustments />} />
                 <Route path="/adjustments/new" element={<NewAdjustment />} />
               </Route>
