@@ -11,6 +11,18 @@ export const getProducts = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const createProduct = async (req: AuthRequest, res: Response) => {
+  try {
+    const { name, sku, category, uom, weight, trackSerial } = req.body;
+    const newProduct = new Product({ name, sku, category, uom, weight, trackSerial });
+    await newProduct.save();
+    res.status(201).json(newProduct);
+  } catch (error: any) {
+    console.error('Error creating product:', error);
+    res.status(500).json({ error: error.message || 'Error creating product' });
+  }
+};
+
 export const getWarehouses = async (req: AuthRequest, res: Response) => {
   try {
     const warehouses = await Warehouse.find().sort({ name: 1 });

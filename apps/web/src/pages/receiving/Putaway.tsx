@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import api from '../../api';
 import { Package, Search, MapPin, CheckCircle2 } from 'lucide-react';
 
 export default function Putaway() {
@@ -9,9 +9,7 @@ export default function Putaway() {
   const { data: tasks = [], isLoading, refetch } = useQuery({
     queryKey: ['putaway-tasks'],
     queryFn: async () => {
-      const res = await axios.get('http://localhost:5000/api/receiving/tasks', {
-        withCredentials: true
-      });
+      const res = await api.get('/receiving/tasks');
       return res.data;
     }
   });
@@ -70,10 +68,10 @@ function TaskCard({ task, refetch }: { task: any, refetch: () => void }) {
   const handleComplete = async () => {
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/receiving/putaway', {
+      await api.post('/receiving/putaway', {
         taskId: task._id,
         actualLocationId: task.suggestedLocationId._id
-      }, { withCredentials: true });
+      });
       refetch();
     } catch (error) {
       console.error(error);

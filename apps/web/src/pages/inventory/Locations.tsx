@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import api from '../../api';
 import { Map, Search, Plus, Filter, Warehouse, MapPin } from 'lucide-react';
 
 export default function Locations() {
@@ -9,9 +9,7 @@ export default function Locations() {
   const { data: locations = [], isLoading } = useQuery({
     queryKey: ['locations'],
     queryFn: async () => {
-      const res = await axios.get('http://localhost:5000/api/inventory/locations', {
-        withCredentials: true
-      });
+      const res = await api.get('/inventory/locations');
       return res.data;
     }
   });

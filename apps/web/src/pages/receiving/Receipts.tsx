@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import api from '../../api';
 import { ArrowDownToLine, Search, Plus, Package, Clock, CheckCircle2 } from 'lucide-react';
 
 export default function Receipts() {
@@ -9,9 +9,7 @@ export default function Receipts() {
   const { data: receipts = [], isLoading } = useQuery({
     queryKey: ['receipts'],
     queryFn: async () => {
-      const res = await axios.get('http://localhost:5000/api/receiving', {
-        withCredentials: true
-      });
+      const res = await api.get('/receiving');
       return res.data;
     }
   });

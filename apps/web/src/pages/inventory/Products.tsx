@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import api from '../../api';
 import { Package, Search, Plus, Filter, ArrowUpDown } from 'lucide-react';
 
 export default function Products() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data: products = [], isLoading } = useQuery({
+  const { data: products = [], isLoading, refetch } = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
-      const res = await axios.get('http://localhost:5000/api/inventory/products', {
-        withCredentials: true
-      });
+      const res = await api.get('/inventory/products');
       return res.data;
     }
   });
@@ -22,7 +21,7 @@ export default function Products() {
   );
 
   return (
-    <div className="flex flex-col h-full bg-md-surface-container rounded-[40px] shadow-sm overflow-hidden">
+    <div className="flex flex-col h-full bg-md-surface-container rounded-[40px] shadow-sm overflow-hidden relative">
       {/* Header section with search and actions */}
       <div className="p-8 border-b border-md-outline/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -44,7 +43,9 @@ export default function Products() {
           <button className="flex items-center gap-2 p-4 bg-md-surface-container-low shadow-sm rounded-full text-md-surface-variant hover:bg-md-primary/10 hover:text-md-primary transition-all duration-200 active:scale-95">
             <Filter className="w-5 h-5" />
           </button>
-          <button className="flex items-center gap-2 px-8 py-4 bg-md-primary text-md-on-primary font-bold rounded-full shadow-md hover:shadow-lg hover:bg-md-primary/90 active:scale-95 transition-all duration-300">
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-8 py-4 bg-md-primary text-md-on-primary font-bold rounded-full shadow-md hover:shadow-lg hover:bg-md-primary/90 active:scale-95 transition-all duration-300">
             <Plus className="w-5 h-5" />
             New Product
           </button>
@@ -72,6 +73,77 @@ export default function Products() {
             ))}
           </div>
         )}
+      </div>
+
+      {isModalOpen && <ProductModal onClose={() => setIsModalOpen(false)} onSuccess={() => { setIsModalOpen(false); refetch(); }} />}
+    </div>
+  );
+}
+
+function ProductModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
+  const [formData, setFormData] = useState({
+    name: '',
+    sku: '',
+    category: '',
+    uom: 'PCS',
+    weight: ''
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await api.post('/inventory/products', {
+        ...formData,
+        weight: formData.weight ? parseFloat(formData.weight) : 0
+      });
+      onSuccess();
+    } catch (error: any) {
+      console.error(error);
+      alert(error.response?.data?.error || 'Failed to create product');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-md-surface rounded-[32px] w-full max-w-md p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+        <h2 className="text-2xl font-bold text-md-on-background mb-6">New Product</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-bold text-md-on-surface mb-1">Product Name</label>
+            <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-md-surface-container-low rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-md-primary" />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-md-on-surface mb-1">SKU</label>
+            <input required type="text" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} className="w-full bg-md-surface-container-low rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-md-primary" />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-md-on-surface mb-1">Category</label>
+            <input type="text" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-md-surface-container-low rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-md-primary" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-md-on-surface mb-1">UOM</label>
+              <input type="text" value={formData.uom} onChange={e => setFormData({...formData, uom: e.target.value})} className="w-full bg-md-surface-container-low rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-md-primary" />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-md-on-surface mb-1">Weight (kg)</label>
+              <input type="number" step="0.01" value={formData.weight} onChange={e => setFormData({...formData, weight: e.target.value})} className="w-full bg-md-surface-container-low rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-md-primary" />
+            </div>
+          </div>
+          
+          <div className="pt-6 flex gap-3">
+            <button type="button" onClick={onClose} className="flex-1 py-3 px-4 rounded-full font-bold text-md-on-surface bg-md-surface-container-highest hover:bg-md-outline/10 transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={loading} className="flex-1 py-3 px-4 rounded-full font-bold text-md-on-primary bg-md-primary hover:bg-md-primary/90 transition-colors disabled:opacity-50">
+              {loading ? 'Saving...' : 'Create'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
