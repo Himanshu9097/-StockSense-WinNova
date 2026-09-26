@@ -15,7 +15,7 @@ export default function Locations() {
   });
 
   const filteredLocations = locations.filter((l: any) => 
-    l.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (l.code && l.code.toLowerCase().includes(searchTerm.toLowerCase())) || 
     (l.name && l.name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 

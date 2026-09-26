@@ -1,27 +1,25 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
-import { ArrowRightLeft, Search, Plus, Filter, PackageOpen, CheckCircle, Clock } from 'lucide-react';
+import api from '../../api';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRightLeft, Search, Plus, Filter, PackageOpen } from 'lucide-react';
 
 export default function TransferList() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
 
   const { data: transfers = [], isLoading } = useQuery({
     queryKey: ['transfers'],
     queryFn: async () => {
-      const res = await axios.get('http://localhost:5000/api/transfers', {
-        withCredentials: true
-      });
+      const res = await api.get('/transfers');
       return res.data;
     }
   });
 
   const executeMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await axios.post(`http://localhost:5000/api/transfers/${id}/execute`, {}, {
-        withCredentials: true
-      });
+      const res = await api.post(`/transfers/${id}/execute`, {});
       return res.data;
     },
     onSuccess: () => {
@@ -53,7 +51,7 @@ export default function TransferList() {
               className="w-full md:w-80 bg-md-surface-container-low rounded-full py-4 pl-14 pr-6 text-md-on-background placeholder:text-md-surface-variant/70 focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:bg-white transition-all duration-300 shadow-sm"
             />
           </div>
-          <button className="flex items-center gap-2 px-8 py-4 bg-md-primary text-md-on-primary font-bold rounded-full shadow-md hover:shadow-lg hover:bg-md-primary/90 active:scale-95 transition-all duration-300">
+          <button onClick={() => navigate('/transfers/new')} className="flex items-center gap-2 px-8 py-4 bg-md-primary text-md-on-primary font-bold rounded-full shadow-md hover:shadow-lg hover:bg-md-primary/90 active:scale-95 transition-all duration-300">
             <Plus className="w-5 h-5" />
             New Transfer
           </button>

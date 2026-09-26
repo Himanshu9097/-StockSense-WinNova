@@ -13,6 +13,8 @@ import Receipts from './pages/receiving/Receipts';
 import Deliveries from './pages/receiving/Deliveries';
 import Putaway from './pages/receiving/Putaway';
 import TransferList from './pages/transfers/TransferList';
+import NewTransfer from './pages/transfers/NewTransfer';
+import InventoryBalances from './pages/inventory/InventoryBalances';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 
@@ -35,11 +37,13 @@ function App() {
 
               <Route element={<MaterialLayout />}>
                 <Route path="/products" element={<Products />} />
+                <Route path="/balances" element={<InventoryBalances />} />
                 <Route path="/locations" element={<Locations />} />
                 <Route path="/receipts" element={<Receipts />} />
                 <Route path="/deliveries" element={<Deliveries />} />
                 <Route path="/putaway" element={<Putaway />} />
                 <Route path="/transfers" element={<TransferList />} />
+                <Route path="/transfers/new" element={<NewTransfer />} />
                 <Route path="/adjustments" element={<Adjustments />} />
                 <Route path="/adjustments/new" element={<NewAdjustment />} />
               </Route>

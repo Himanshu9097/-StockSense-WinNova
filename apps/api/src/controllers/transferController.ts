@@ -18,7 +18,7 @@ export const createTransfer = async (req: Request, res: Response): Promise<void>
       destinationLocationId,
       items,
       notes,
-      createdBy: (req.user as any)?._id || (req.user as any)?.id,
+      createdBy: (req.user as any)?.userId || (req.user as any)?._id || (req.user as any)?.id,
       status: 'Draft'
     });
     

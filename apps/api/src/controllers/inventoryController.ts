@@ -34,11 +34,14 @@ export const getWarehouses = async (req: AuthRequest, res: Response) => {
 
 export const getLocations = async (req: AuthRequest, res: Response) => {
   try {
+    console.log("getLocations CALLED", req.query);
     const warehouseId = req.query.warehouseId as string;
     const query = warehouseId ? { warehouseId } : {};
-    const locations = await Location.find(query).sort({ code: 1 });
+    const locations = await Location.find(query).populate('warehouseId', 'name code').sort({ code: 1 });
+    console.log("getLocations FOUND", locations.length);
     res.status(200).json(locations);
   } catch (error: any) {
+    console.error("getLocations Error:", error);
     res.status(500).json({ error: 'Error fetching locations' });
   }
 };
@@ -60,7 +63,10 @@ export const getStock = async (req: AuthRequest, res: Response) => {
 
 export const getAllBalances = async (req: AuthRequest, res: Response) => {
   try {
-    const balances = await InventoryBalance.find()
+    const locationId = req.query.locationId as string;
+    const query = locationId ? { locationId, onHand: { $gt: 0 } } : {};
+    
+    const balances = await InventoryBalance.find(query)
       .populate('productId', 'name sku uom category')
       .populate('warehouseId', 'name code')
       .populate('locationId', 'code name type')

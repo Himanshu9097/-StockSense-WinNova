@@ -6,6 +6,7 @@ export default function Sidebar() {
   const links = [
     { name: 'Dashboard', path: '/dashboard', icon: 'LayoutDashboard' },
     { name: 'Products', path: '/products', icon: 'Package' },
+    { name: 'Inventory Balances', path: '/balances', icon: 'Layers' },
     { name: 'Receipts', path: '/receipts', icon: 'ArrowDownToLine' },
     { name: 'Delivery Orders', path: '/deliveries', icon: 'ArrowUpFromLine' },
     { name: 'Internal Transfers', path: '/transfers', icon: 'ArrowRightLeft' },
