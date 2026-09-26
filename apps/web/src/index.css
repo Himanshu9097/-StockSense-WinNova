@@ -1,26 +1,36 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
 @theme {
+  /* Material You Theme Tokens */
+  --font-sans: 'Roboto', sans-serif;
+  
+  --color-md-background: #FFFBFE;
+  --color-md-on-background: #1C1B1F;
+  --color-md-primary: #6750A4;
+  --color-md-on-primary: #FFFFFF;
+  --color-md-secondary-container: #E8DEF8;
+  --color-md-on-secondary-container: #1D192B;
+  --color-md-tertiary: #7D5260;
+  --color-md-surface-container: #F3EDF7;
+  --color-md-surface-container-low: #E7E0EC;
+  --color-md-outline: #79747E;
+  --color-md-surface-variant: #49454F;
+  
+  /* Retain old colors in case Login page needs them momentarily */
   --color-background: #08111F;
   --color-surface: #0F1B2D;
   --color-surface-elevated: #13233A;
   --color-primary: #38BDF8;
-  --color-success: #22C55E;
-  --color-warning: #F59E0B;
-  --color-danger: #F43F5E;
   --color-text-primary: #F8FAFC;
   --color-text-secondary: #CBD5E1;
-  --color-muted: #94A3B8;
   --color-border: rgba(255, 255, 255, 0.08);
-  
-  --font-sans: 'Inter', sans-serif;
-  --font-mono: 'IBM Plex Mono', monospace;
 }
 
 @layer base {
   body {
-    background-color: var(--color-background);
-    color: var(--color-text-primary);
+    background-color: var(--color-md-background);
+    color: var(--color-md-on-background);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

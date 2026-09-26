@@ -97,4 +97,36 @@ export class AuthService {
 
     return otp; 
   }
+
+  static async resetPassword(data: any, ip: string) {
+    const { email, otp, newPassword } = data;
+    
+    const user = await User.findOne({ email });
+    if (!user) throw new Error('Invalid OTP');
+
+    const resetToken = await PasswordResetToken.findOne({ userId: user._id });
+    if (!resetToken || resetToken.expiresAt < new Date()) {
+      throw new Error('OTP expired or invalid');
+    }
+
+    if (resetToken.attempts >= 3) {
+      throw new Error('Too many failed attempts. Request a new OTP.');
+    }
+
+    const isValid = await bcrypt.compare(otp, resetToken.token);
+    if (!isValid) {
+      resetToken.attempts += 1;
+      await resetToken.save();
+      throw new Error('Invalid OTP');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    user.passwordHash = passwordHash;
+    await user.save();
+
+    await PasswordResetToken.deleteOne({ _id: resetToken._id });
+    await SecurityEvent.create({ eventType: 'PASSWORD_CHANGED_OTP', userId: user._id, ip });
+
+    return true;
+  }
 }

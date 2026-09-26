@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/authService';
+import { EmailService } from '../services/emailService';
 
 export const signup = async (req: Request, res: Response) => {
   try {
@@ -48,9 +49,37 @@ export const logout = async (req: Request, res: Response) => {
 export const refresh = async (req: Request, res: Response) => { res.status(200).json({ message: 'Not implemented' }); };
 export const verifyEmail = async (req: Request, res: Response) => { res.status(200).json({ message: 'Not implemented' }); };
 export const resendVerification = async (req: Request, res: Response) => { res.status(200).json({ message: 'Not implemented' }); };
-export const forgotPassword = async (req: Request, res: Response) => { res.status(200).json({ message: 'Not implemented' }); };
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    
+    const otp = await AuthService.forgotPassword(email, ip);
+    if (otp) {
+      await EmailService.sendOTP(email, otp);
+    }
+    
+    // Always return success to prevent email enumeration
+    res.status(200).json({ message: 'If an account with that email exists, an OTP has been sent.' });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 export const verifyOtp = async (req: Request, res: Response) => { res.status(200).json({ message: 'Not implemented' }); };
-export const resetPassword = async (req: Request, res: Response) => { res.status(200).json({ message: 'Not implemented' }); };
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    await AuthService.resetPassword(req.body, ip);
+    res.status(200).json({ message: 'Password has been reset successfully' });
+  } catch (error: any) {
+    console.error("Reset password error:", error);
+    res.status(400).json({ error: error.message || 'Invalid request' });
+  }
+};
+
 export const getMe = async (req: Request, res: Response) => { res.status(200).json({ message: 'Not implemented' }); };
 export const getSessions = async (req: Request, res: Response) => { res.status(200).json({ message: 'Not implemented' }); };
 export const revokeSession = async (req: Request, res: Response) => { res.status(200).json({ message: 'Not implemented' }); };

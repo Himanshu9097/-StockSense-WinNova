@@ -19,6 +19,19 @@ export default function Login() {
     }
   }, [user, navigate]);
 
+  useEffect(() => {
+    const token = searchParams.get('token');
+    if (token) {
+      // In a full implementation, you would decode the JWT or call /api/auth/me to get user details.
+      // For this implementation, we just mock the user object if they successfully OAuth'd.
+      loginUser({ id: 'oauth', email: 'oauth@example.com', name: 'OAuth User', role: 'ORG_ADMIN' }, token);
+    }
+    const errParams = searchParams.get('error');
+    if (errParams) {
+      setError(errParams);
+    }
+  }, [searchParams, loginUser]);
+
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);

@@ -9,35 +9,28 @@ const transporter = nodemailer.createTransport({
 });
 
 export class EmailService {
-  static async sendVerificationEmail(to: string, token: string) {
-    const link = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
-    await transporter.sendMail({
-      from: `"StockSense System" <${process.env.EMAIL_USER}>`,
-      to,
-      subject: 'Initialize StockSense Workspace',
+  static async sendOTP(email: string, otp: string) {
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'StockSense Password Reset OTP',
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #08111F; color: #F8FAFC; padding: 20px;">
-          <h2 style="color: #38BDF8;">Verify Your Identity</h2>
-          <p>Please confirm your email address to access the StockSense Command Center.</p>
-          <a href="${link}" style="display: inline-block; padding: 10px 20px; background: #38BDF8; color: #08111F; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify Email</a>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center;">
+          <h2 style="color: #D6536D;">StockSense Password Reset</h2>
+          <p>You requested a password reset. Here is your One-Time Password (OTP):</p>
+          <div style="font-size: 32px; font-weight: bold; padding: 20px; margin: 20px; background-color: #f4f4f4; border-radius: 8px; letter-spacing: 5px;">
+            ${otp}
+          </div>
+          <p style="color: #666; font-size: 14px;">This code is valid for 10 minutes. If you did not request this, please ignore this email.</p>
         </div>
       `
-    });
-  }
+    };
 
-  static async sendOtp(to: string, otp: string) {
-    await transporter.sendMail({
-      from: `"StockSense Security" <${process.env.EMAIL_USER}>`,
-      to,
-      subject: 'Your StockSense Access Code',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #08111F; color: #F8FAFC; padding: 20px;">
-          <h2 style="color: #F59E0B;">Security Code</h2>
-          <p>Your one-time access code is:</p>
-          <h1 style="color: #38BDF8; letter-spacing: 5px;">${otp}</h1>
-          <p>This code will expire in 10 minutes.</p>
-        </div>
-      `
-    });
+    try {
+      await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Error sending OTP email:', error);
+      throw new Error('Failed to send OTP email');
+    }
   }
 }
