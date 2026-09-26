@@ -17,7 +17,7 @@ router.get('/me', getMe);
 router.get('/sessions', getSessions);
 router.delete('/sessions/:id', revokeSession);
 
-import passport from 'passport';
+import passport from '../config/passport';
 import jwt from 'jsonwebtoken';
 import { Session } from '../models';
 
@@ -45,7 +45,7 @@ const handleOAuthSuccess = async (req: any, res: any) => {
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   });
 
@@ -56,7 +56,7 @@ const handleOAuthSuccess = async (req: any, res: any) => {
 // OAuth routes
 router.get('/google', (req, res, next) => {
   if (!process.env.GOOGLE_CLIENT_ID) return res.status(501).send('Google OAuth is not configured in .env');
-  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+  passport.authenticate('google', { scope: ['profile', 'email'], prompt: 'select_account' })(req, res, next);
 });
 router.get('/google/callback', passport.authenticate('google', { failureRedirect: 'http://localhost:5173/login?error=GoogleAuthFailed' }), handleOAuthSuccess);
 

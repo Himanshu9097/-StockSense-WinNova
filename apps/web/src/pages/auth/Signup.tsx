@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 
+const API_URL = 'http://localhost:5000/api';
+
 export default function Signup() {
   const [formData, setFormData] = useState({
     organizationName: '', industry: '',
@@ -11,13 +13,13 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { user, loginUser } = useAuth();
+  const { user, loginUser, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
+    if (!authLoading && user) {
+      navigate('/dashboard', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,8 +31,7 @@ export default function Signup() {
     
     setLoading(true);
     try {
-      // Create user and org
-      await axios.post('http://localhost:5000/api/auth/signup', {
+      await axios.post(`${API_URL}/auth/signup`, {
         name: formData.name,
         email: formData.email,
         password: formData.password,
@@ -38,8 +39,8 @@ export default function Signup() {
         role: formData.role
       });
       
-      // Auto-login
-      const loginRes = await axios.post('http://localhost:5000/api/auth/login', {
+      // Auto-login after signup
+      const loginRes = await axios.post(`${API_URL}/auth/login`, {
         email: formData.email,
         password: formData.password
       }, { withCredentials: true });
@@ -99,7 +100,10 @@ export default function Signup() {
               {loading ? 'Creating...' : 'Create Company Account'}
             </button>
             <div className="text-center mt-3">
-              <a href="/login" className="text-muted text-decoration-none small">Already have an account? Login here</a>
+              <span className="text-muted small">Already have an account? </span>
+              <button type="button" className="btn btn-link text-decoration-none fw-bold p-0 m-0 align-baseline small" onClick={() => navigate('/login')} style={{ color: '#D6536D' }}>
+                Login here
+              </button>
             </div>
           </form>
         </div>

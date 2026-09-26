@@ -3,34 +3,60 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 
+const API_URL = 'http://localhost:5000/api';
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [leftWidth, setLeftWidth] = useState(30);
   const [isDragging, setIsDragging] = useState(false);
-  const { loginUser, user } = useAuth();
+  const [oauthLoading, setOauthLoading] = useState(false);
+  const { loginUser, user, loading } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
+  // If already logged in, go to dashboard
   useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
+    if (!loading && user) {
+      navigate('/dashboard', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
+  // Handle OAuth callback token
   useEffect(() => {
     const token = searchParams.get('token');
+    const errParam = searchParams.get('error');
+
+    if (errParam) {
+      setError(errParam);
+      setSearchParams({}, { replace: true });
+      return;
+    }
+
     if (token) {
-      // In a full implementation, you would decode the JWT or call /api/auth/me to get user details.
-      // For this implementation, we just mock the user object if they successfully OAuth'd.
-      loginUser({ id: 'oauth', email: 'oauth@example.com', name: 'OAuth User', role: 'ORG_ADMIN' }, token);
+      setOauthLoading(true);
+      axios.get(`${API_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true
+      })
+      .then(res => {
+        if (res.data && res.data.user) {
+          loginUser(res.data.user, token);
+          navigate('/dashboard', { replace: true });
+        } else {
+          setError('Failed to retrieve user data after login.');
+        }
+      })
+      .catch(() => {
+        setError('OAuth login failed. Please try again.');
+      })
+      .finally(() => {
+        setOauthLoading(false);
+        setSearchParams({}, { replace: true });
+      });
     }
-    const errParams = searchParams.get('error');
-    if (errParams) {
-      setError(errParams);
-    }
-  }, [searchParams, loginUser]);
+  }, [searchParams, loginUser, navigate, setSearchParams]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -72,7 +98,7 @@ export default function Login() {
     e.preventDefault();
     setError('');
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', { email, password }, {
+      const response = await axios.post(`${API_URL}/auth/login`, { email, password }, {
         withCredentials: true
       });
       loginUser(response.data.user, response.data.accessToken);
@@ -82,12 +108,25 @@ export default function Login() {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:5000/api/auth/google';
+    window.location.href = `${API_URL}/auth/google`;
   };
 
   const handleGithubLogin = () => {
-    window.location.href = 'http://localhost:5000/api/auth/github';
+    window.location.href = `${API_URL}/auth/github`;
   };
+
+  if (oauthLoading) {
+    return (
+      <div className="d-flex vh-100 align-items-center justify-content-center bg-white">
+        <div className="text-center">
+          <div className="spinner-border mb-3" role="status" style={{ color: '#D6536D' }}>
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="text-muted">Completing login...</p>
+        </div>
+      </div>
+    );
+  }
 
   const fontRem = Math.min(Math.max(leftWidth * 0.16 + 1.0, 1.5), 8.5);
   const letterSpacingEm = Math.min(Math.max(leftWidth * 0.009 + 0.1, 0.12), 0.45);
@@ -216,7 +255,7 @@ export default function Login() {
               <span className="fw-bold text-dark">Google</span>
             </button>
             <button type="button" className="btn btn-dark py-2 d-flex align-items-center justify-content-center" onClick={handleGithubLogin} style={{ borderRadius: '10px' }}>
-              <i className="fa fa-github fa-lg me-3 text-white"></i>
+              <svg className="me-3" width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
               <span className="fw-bold text-white">GitHub</span>
             </button>
           </div>
