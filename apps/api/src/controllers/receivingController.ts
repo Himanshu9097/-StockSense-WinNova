@@ -6,7 +6,12 @@ import mongoose from 'mongoose';
 
 export const getReceipts = async (req: AuthRequest, res: Response) => {
   try {
-    const receipts = await Receipt.find().populate('createdBy', 'name').sort({ createdAt: -1 });
+    const receipts = await Receipt.find()
+      .populate('createdBy', 'name')
+      .populate('warehouseId', 'name code')
+      .populate('locationId', 'code type')
+      .populate('lines.productId', 'name sku')
+      .sort({ createdAt: -1 });
     res.status(200).json(receipts);
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to fetch receipts' });
@@ -29,7 +34,10 @@ export const getReceiptById = async (req: AuthRequest, res: Response) => {
   try {
     const receipt = await Receipt.findById(req.params.id)
       .populate('createdBy', 'name')
-      .populate('lines.productId', 'name sku');
+      .populate('warehouseId', 'name code')
+      .populate('locationId', 'code type')
+      .populate('lines.productId', 'name sku uom')
+      .populate('lines.locationId', 'code type');
     
     if (!receipt) return res.status(404).json({ error: 'Receipt not found' });
     res.status(200).json(receipt);
@@ -40,10 +48,15 @@ export const getReceiptById = async (req: AuthRequest, res: Response) => {
 
 export const createReceipt = async (req: AuthRequest, res: Response) => {
   try {
-    const { warehouseId, locationId, supplier, reference, lines, notes, draft } = req.body;
+    const { warehouseId, locationId, supplier, reference, expectedArrivalDate, lines, notes, draft } = req.body;
 
     if (!warehouseId || !lines || lines.length === 0) {
       return res.status(400).json({ error: 'Warehouse and at least one line are required.' });
+    }
+    for (const line of lines) {
+      if (!line.productId || !line.expectedQuantity || line.expectedQuantity <= 0) {
+        return res.status(400).json({ error: 'Each line must have a product and expected quantity greater than 0.' });
+      }
     }
 
     const receiptNumber = `RCV-${Date.now()}`;
@@ -51,9 +64,10 @@ export const createReceipt = async (req: AuthRequest, res: Response) => {
     const receipt = new Receipt({
       receiptNumber,
       warehouseId,
-      locationId,
+      locationId: locationId || undefined,
       supplier,
       reference,
+      expectedArrivalDate: expectedArrivalDate ? new Date(expectedArrivalDate) : undefined,
       lines,
       notes,
       createdBy: req.user!.userId,
@@ -61,9 +75,85 @@ export const createReceipt = async (req: AuthRequest, res: Response) => {
     });
 
     await receipt.save();
-    res.status(201).json(receipt);
+    const populated = await Receipt.findById(receipt._id)
+      .populate('createdBy', 'name')
+      .populate('warehouseId', 'name code')
+      .populate('locationId', 'code type')
+      .populate('lines.productId', 'name sku uom')
+      .populate('lines.locationId', 'code type');
+    res.status(201).json(populated);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to create receipt' });
+  }
+};
+
+export const updateReceipt = async (req: AuthRequest, res: Response) => {
+  try {
+    const receipt = await Receipt.findById(req.params.id);
+    if (!receipt) return res.status(404).json({ error: 'Receipt not found' });
+
+    if (receipt.status === 'COMPLETED' || receipt.status === 'CANCELLED') {
+      return res.status(400).json({ error: `Cannot update receipt in ${receipt.status} status` });
+    }
+
+    const { warehouseId, locationId, supplier, reference, expectedArrivalDate, lines, notes, status } = req.body;
+
+    if (warehouseId) receipt.warehouseId = warehouseId;
+    if (locationId !== undefined) receipt.locationId = locationId || undefined;
+    if (supplier !== undefined) receipt.supplier = supplier;
+    if (reference !== undefined) receipt.reference = reference;
+    if (expectedArrivalDate !== undefined) receipt.expectedArrivalDate = expectedArrivalDate ? new Date(expectedArrivalDate) : undefined;
+    if (notes !== undefined) receipt.notes = notes;
+    if (status && ['DRAFT', 'EXPECTED', 'ARRIVED', 'RECEIVING'].includes(status)) {
+      receipt.status = status;
+    }
+    if (lines && Array.isArray(lines)) {
+      receipt.lines = lines as any;
+    }
+
+    await receipt.save();
+    const populated = await Receipt.findById(receipt._id)
+      .populate('createdBy', 'name')
+      .populate('warehouseId', 'name code')
+      .populate('locationId', 'code type')
+      .populate('lines.productId', 'name sku uom')
+      .populate('lines.locationId', 'code type');
+    res.status(200).json(populated);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to update receipt' });
+  }
+};
+
+export const cancelReceipt = async (req: AuthRequest, res: Response) => {
+  try {
+    const receipt = await Receipt.findById(req.params.id);
+    if (!receipt) return res.status(404).json({ error: 'Receipt not found' });
+
+    if (receipt.status === 'COMPLETED') {
+      return res.status(400).json({ error: 'Cannot cancel a completed receipt' });
+    }
+
+    receipt.status = 'CANCELLED';
+    await receipt.save();
+    res.status(200).json({ message: 'Receipt cancelled', receipt });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to cancel receipt' });
+  }
+};
+
+export const deleteReceipt = async (req: AuthRequest, res: Response) => {
+  try {
+    const receipt = await Receipt.findById(req.params.id);
+    if (!receipt) return res.status(404).json({ error: 'Receipt not found' });
+
+    if (receipt.status !== 'DRAFT' && receipt.status !== 'CANCELLED') {
+      return res.status(400).json({ error: 'Only DRAFT or CANCELLED receipts can be deleted' });
+    }
+
+    await Receipt.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: 'Receipt deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to delete receipt' });
   }
 };
 
@@ -89,16 +179,41 @@ export const validateReceipt = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Cannot validate a cancelled receipt.' });
     }
 
+    // Apply any updated line quantities or lots passed from the client
+    const clientLines: any[] = req.body?.lines;
+    if (clientLines && Array.isArray(clientLines)) {
+      for (const cl of clientLines) {
+        const line = receipt.lines.find(
+          (l: any) => (cl._id && l._id?.toString() === cl._id.toString()) || 
+                      (cl.productId && (l.productId?._id?.toString() === cl.productId.toString() || l.productId?.toString() === cl.productId.toString()))
+        );
+        if (line) {
+          if (cl.receivedQuantity !== undefined && cl.receivedQuantity !== null) {
+            line.receivedQuantity = Number(cl.receivedQuantity);
+          }
+          if (cl.locationId) line.locationId = cl.locationId;
+          if (cl.lotId !== undefined) line.lotId = cl.lotId;
+          if (cl.serialId !== undefined) line.serialId = cl.serialId;
+        }
+      }
+    }
+
     for (const line of receipt.lines) {
-      const qty = line.receivedQuantity > 0 ? line.receivedQuantity : line.expectedQuantity;
+      const qty = (line.receivedQuantity !== undefined && line.receivedQuantity !== null && line.receivedQuantity > 0)
+        ? line.receivedQuantity 
+        : line.expectedQuantity;
       if (qty <= 0) continue;
 
       // Use line-level locationId, fallback to receipt-level locationId
       const locationId = (line as any).locationId || (receipt as any).locationId;
-      if (!locationId) throw new Error(`No location assigned for product ${(line.productId as any)?.name || line.productId}. Please select a location.`);
+      if (!locationId) {
+        throw new Error(`No destination location assigned for product ${(line.productId as any)?.name || line.productId}. Please select a location.`);
+      }
+
+      const prodId = (line.productId as any)?._id || line.productId;
 
       let balance = await InventoryBalance.findOne({
-        productId: line.productId,
+        productId: prodId,
         locationId,
         lotId: line.lotId || null,
         serialId: line.serialId || null
@@ -108,7 +223,7 @@ export const validateReceipt = async (req: AuthRequest, res: Response) => {
 
       if (!balance) {
         balance = new InventoryBalance({
-          productId: line.productId,
+          productId: prodId,
           warehouseId: receipt.warehouseId,
           locationId,
           lotId: line.lotId,
@@ -123,7 +238,7 @@ export const validateReceipt = async (req: AuthRequest, res: Response) => {
       const ledger = new StockLedger({
         transactionId: `RCV-TXN-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
         operation: 'RECEIPT',
-        productId: line.productId,
+        productId: prodId,
         lotId: line.lotId,
         serialId: line.serialId,
         destinationLocationId: locationId,
@@ -150,7 +265,11 @@ export const validateReceipt = async (req: AuthRequest, res: Response) => {
     session.endSession();
 
     const populated = await Receipt.findById(receipt._id)
-      .populate('lines.productId', 'name sku');
+      .populate('createdBy', 'name')
+      .populate('warehouseId', 'name code')
+      .populate('locationId', 'code type')
+      .populate('lines.productId', 'name sku uom')
+      .populate('lines.locationId', 'code type');
     res.status(200).json({ message: 'Receipt validated. Stock updated.', receipt: populated });
   } catch (error: any) {
     await session.abortTransaction();
@@ -268,8 +387,6 @@ export const completePutaway = async (req: AuthRequest, res: Response) => {
     task.completedBy = req.user!.userId as any;
     task.completedAt = new Date();
     await task.save({ session });
-    
-    // (In a real system, we'd check if all tasks for the receipt are done and mark receipt COMPLETED)
     
     await session.commitTransaction();
     res.status(200).json({ message: 'Putaway completed successfully' });

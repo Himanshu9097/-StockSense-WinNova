@@ -10,6 +10,7 @@ import NewAdjustment from './pages/adjustments/NewAdjustment';
 import Products from './pages/inventory/Products';
 import Locations from './pages/inventory/Locations';
 import Receipts from './pages/receiving/Receipts';
+import Deliveries from './pages/receiving/Deliveries';
 import Putaway from './pages/receiving/Putaway';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
@@ -35,6 +36,7 @@ function App() {
                 <Route path="/products" element={<Products />} />
                 <Route path="/locations" element={<Locations />} />
                 <Route path="/receipts" element={<Receipts />} />
+                <Route path="/deliveries" element={<Deliveries />} />
                 <Route path="/putaway" element={<Putaway />} />
                 <Route path="/adjustments" element={<Adjustments />} />
                 <Route path="/adjustments/new" element={<NewAdjustment />} />
