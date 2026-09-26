@@ -72,8 +72,8 @@ export default function MaterialLayout() {
           <div className="pt-8 pb-3 px-4 text-xs font-bold text-md-surface-variant uppercase tracking-wider">
             Management
           </div>
-          <NavItem icon={<AlertTriangle />} label="Exceptions" badge="3" onClick={() => {}} />
-          <NavItem icon={<Settings />} label="Settings" onClick={() => {}} />
+          <NavItem icon={<AlertTriangle />} label="Exceptions" badge="3" active={location.pathname.startsWith('/exceptions')} onClick={() => navigate('/exceptions')} />
+          <NavItem icon={<Settings />} label="Settings" active={location.pathname.startsWith('/settings')} onClick={() => navigate('/settings')} />
         </nav>
 
         <div className="p-6">

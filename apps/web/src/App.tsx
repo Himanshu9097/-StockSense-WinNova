@@ -9,12 +9,17 @@ import Adjustments from './pages/adjustments/Adjustments';
 import NewAdjustment from './pages/adjustments/NewAdjustment';
 import Products from './pages/inventory/Products';
 import Locations from './pages/inventory/Locations';
+import Transfers from './pages/inventory/Transfers';
 import Receipts from './pages/receiving/Receipts';
 import Deliveries from './pages/receiving/Deliveries';
 import Putaway from './pages/receiving/Putaway';
 import TransferList from './pages/transfers/TransferList';
 import NewTransfer from './pages/transfers/NewTransfer';
 import InventoryBalances from './pages/inventory/InventoryBalances';
+import Exceptions from './pages/management/Exceptions';
+import Settings from './pages/management/Settings';
+import TeamManagement from './pages/management/TeamManagement';
+import SettingsPlaceholder from './pages/management/SettingsPlaceholder';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 
@@ -39,6 +44,7 @@ function App() {
                 <Route path="/products" element={<Products />} />
                 <Route path="/balances" element={<InventoryBalances />} />
                 <Route path="/locations" element={<Locations />} />
+                <Route path="/transfers" element={<Transfers />} />
                 <Route path="/receipts" element={<Receipts />} />
                 <Route path="/deliveries" element={<Deliveries />} />
                 <Route path="/putaway" element={<Putaway />} />
@@ -46,6 +52,12 @@ function App() {
                 <Route path="/transfers/new" element={<NewTransfer />} />
                 <Route path="/adjustments" element={<Adjustments />} />
                 <Route path="/adjustments/new" element={<NewAdjustment />} />
+                <Route path="/exceptions" element={<Exceptions />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/settings/team" element={<TeamManagement />} />
+                <Route path="/settings/org" element={<SettingsPlaceholder />} />
+                <Route path="/settings/security" element={<SettingsPlaceholder />} />
+                <Route path="/settings/notifications" element={<SettingsPlaceholder />} />
               </Route>
             </Route>
           </Routes>

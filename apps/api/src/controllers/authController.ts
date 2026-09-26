@@ -26,6 +26,48 @@ export const signup = async (req: Request, res: Response) => {
   }
 };
 
+export const inviteStaff = async (req: Request, res: Response) => {
+  try {
+    const { email, role } = req.body;
+    
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
+
+    // Generate a temporary password (e.g. Temp@1234)
+    const tempPassword = 'Temp@' + Math.floor(1000 + Math.random() * 9000);
+    
+    // In a real app we'd use AuthService to hash it properly, here we just use bcrypt
+    const bcrypt = require('bcrypt');
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(tempPassword, salt);
+    
+    // Create the user
+    const newUser = new User({
+      email,
+      name: email.split('@')[0],
+      passwordHash,
+      role: role || 'STAFF',
+      isVerified: true
+    });
+    
+    await newUser.save();
+    
+    // Send email with temp password
+    await EmailService.sendInvite(email, tempPassword, role || 'STAFF');
+
+    res.status(201).json({ 
+      message: 'Invitation sent', 
+      user: { id: newUser._id, email: newUser.email, name: newUser.name, role: newUser.role, status: 'PENDING' } 
+    });
+  } catch (error: any) {
+    console.error("Invite error:", error);
+    res.status(500).json({ error: error.message || 'Failed to send invite' });
+  }
+};
+
 export const login = async (req: Request, res: Response) => {
   try {
     const ip = req.ip || req.socket.remoteAddress || 'unknown';

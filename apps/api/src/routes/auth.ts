@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { signup, login, logout, refresh, verifyEmail, resendVerification, forgotPassword, verifyOtp, resetPassword, getMe, getSessions, revokeSession } from '../controllers/authController';
+import { signup, login, logout, refresh, verifyEmail, resendVerification, forgotPassword, verifyOtp, resetPassword, getMe, getSessions, revokeSession, inviteStaff } from '../controllers/authController';
 import { requireAuth } from '../middlewares/auth';
 
 const router = Router();
@@ -19,6 +19,7 @@ router.post('/reset-password', resetPassword);
 router.get('/me', requireAuth as any, getMe as any);
 router.get('/sessions', requireAuth as any, getSessions as any);
 router.delete('/sessions/:id', requireAuth as any, revokeSession as any);
+router.post('/invite', requireAuth as any, inviteStaff as any);
 
 import passport from '../config/passport';
 import jwt from 'jsonwebtoken';

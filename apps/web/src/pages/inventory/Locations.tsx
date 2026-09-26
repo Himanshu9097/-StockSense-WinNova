@@ -6,7 +6,9 @@ import { Map, Search, Plus, MapPin } from 'lucide-react';
 export default function Locations() {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const { data: locations = [], isLoading } = useQuery({
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const { data: locations = [], isLoading, refetch } = useQuery({
     queryKey: ['locations'],
     queryFn: async () => {
       const res = await api.get('/inventory/locations');
@@ -15,12 +17,12 @@ export default function Locations() {
   });
 
   const filteredLocations = locations.filter((l: any) => 
-    (l.code && l.code.toLowerCase().includes(searchTerm.toLowerCase())) || 
-    (l.name && l.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    (l?.code?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+    (l?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="flex flex-col h-full bg-md-surface-container rounded-[40px] shadow-sm overflow-hidden">
+    <div className="flex flex-col h-full bg-md-surface-container rounded-[40px] shadow-sm overflow-hidden relative">
       {/* Header section with search and actions */}
       <div className="p-8 border-b border-md-outline/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -39,7 +41,9 @@ export default function Locations() {
               className="w-full md:w-80 bg-md-surface-container-low rounded-full py-4 pl-14 pr-6 text-md-on-background placeholder:text-md-surface-variant/70 focus:outline-none focus:ring-2 focus:ring-md-primary/50 focus:bg-white transition-all duration-300 shadow-sm"
             />
           </div>
-          <button className="flex items-center gap-2 px-8 py-4 bg-md-primary text-md-on-primary font-bold rounded-full shadow-md hover:shadow-lg hover:bg-md-primary/90 active:scale-95 transition-all duration-300">
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-8 py-4 bg-md-primary text-md-on-primary font-bold rounded-full shadow-md hover:shadow-lg hover:bg-md-primary/90 active:scale-95 transition-all duration-300">
             <Plus className="w-5 h-5" />
             New Location
           </button>
@@ -66,6 +70,71 @@ export default function Locations() {
             ))}
           </div>
         )}
+      </div>
+
+      {isModalOpen && <LocationModal onClose={() => setIsModalOpen(false)} onSuccess={() => { setIsModalOpen(false); refetch(); }} />}
+    </div>
+  );
+}
+
+function LocationModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
+  const [formData, setFormData] = useState({
+    code: '',
+    type: 'BIN',
+    capacity: ''
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await api.post('/inventory/locations', {
+        ...formData,
+        capacity: formData.capacity ? parseInt(formData.capacity, 10) : 0
+      });
+      onSuccess();
+    } catch (error: any) {
+      console.error(error);
+      alert(error.response?.data?.error || 'Failed to create location');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-md-surface rounded-[32px] w-full max-w-md p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+        <h2 className="text-2xl font-bold text-md-on-background mb-6">New Location</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-bold text-md-on-surface mb-1">Location Code</label>
+            <input required type="text" placeholder="e.g. WH1-Z1-A1-B1" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} className="w-full bg-md-surface-container-low rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-md-primary" />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-md-on-surface mb-1">Type</label>
+            <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="w-full bg-md-surface-container-low rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-md-primary">
+              <option value="AISLE">Aisle</option>
+              <option value="RACK">Rack</option>
+              <option value="SHELF">Shelf</option>
+              <option value="BIN">Bin</option>
+              <option value="FLOOR">Floor</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-md-on-surface mb-1">Capacity (Max Items)</label>
+            <input type="number" min="0" value={formData.capacity} onChange={e => setFormData({...formData, capacity: e.target.value})} className="w-full bg-md-surface-container-low rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-md-primary" />
+          </div>
+          
+          <div className="pt-6 flex gap-3">
+            <button type="button" onClick={onClose} className="flex-1 py-3 px-4 rounded-full font-bold text-md-on-surface bg-md-surface-container-highest hover:bg-md-outline/10 transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={loading} className="flex-1 py-3 px-4 rounded-full font-bold text-md-on-primary bg-md-primary hover:bg-md-primary/90 transition-colors disabled:opacity-50">
+              {loading ? 'Saving...' : 'Create'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

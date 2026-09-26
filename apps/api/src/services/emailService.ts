@@ -33,4 +33,33 @@ export class EmailService {
       throw new Error('Failed to send OTP email');
     }
   }
+
+  static async sendInvite(email: string, tempPassword: string, role: string) {
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'You have been invited to StockSense',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center;">
+          <h2 style="color: #D6536D;">Welcome to StockSense</h2>
+          <p>You have been invited to join the warehouse team as a <strong>${role}</strong>.</p>
+          <p>Here are your temporary login credentials:</p>
+          <div style="padding: 20px; margin: 20px; background-color: #f4f4f4; border-radius: 8px; text-align: left;">
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Password:</strong> ${tempPassword}</p>
+          </div>
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login" style="display: inline-block; padding: 12px 24px; background-color: #D6536D; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 10px;">
+            Log in to StockSense
+          </a>
+        </div>
+      `
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Error sending invite email:', error);
+      throw new Error('Failed to send invite email');
+    }
+  }
 }

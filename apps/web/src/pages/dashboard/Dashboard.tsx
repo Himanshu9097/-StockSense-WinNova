@@ -54,8 +54,8 @@ export default function Dashboard() {
           <div className="pt-8 pb-3 px-4 text-xs font-bold text-md-surface-variant uppercase tracking-wider">
             Management
           </div>
-          <NavItem icon={<AlertTriangle />} label="Exceptions" badge="3" />
-          <NavItem icon={<Settings />} label="Settings" />
+          <NavItem icon={<AlertTriangle />} label="Exceptions" badge="3" onClick={() => navigate('/exceptions')} />
+          <NavItem icon={<Settings />} label="Settings" onClick={() => navigate('/settings')} />
         </nav>
 
         <div className="p-6">

@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/auth';
 import { Product, Warehouse, Location, Zone, InventoryBalance } from '../models';
+import mongoose from 'mongoose';
 
 export const getProducts = async (req: AuthRequest, res: Response) => {
   try {
@@ -43,6 +44,80 @@ export const getLocations = async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     console.error("getLocations Error:", error);
     res.status(500).json({ error: 'Error fetching locations' });
+  }
+};
+
+export const createLocation = async (req: AuthRequest, res: Response) => {
+  try {
+    let { code, type, capacity, warehouseId, zoneId } = req.body;
+    
+    // For MVP, if warehouse/zone not provided, pick the first ones
+    if (!warehouseId || !zoneId) {
+      const warehouse = await Warehouse.findOne();
+      const zone = await Zone.findOne();
+      if (!warehouse || !zone) {
+        return res.status(400).json({ error: 'No warehouse or zone exists to attach location to.' });
+      }
+      warehouseId = warehouse._id;
+      zoneId = zone._id;
+    }
+
+    const newLocation = new Location({ code, type, capacity, warehouseId, zoneId });
+    await newLocation.save();
+    res.status(201).json(newLocation);
+  } catch (error: any) {
+    console.error('Error creating location:', error);
+    res.status(500).json({ error: error.message || 'Error creating location' });
+  }
+};
+
+export const transferStock = async (req: AuthRequest, res: Response) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+    const { productId, fromLocationId, toLocationId, quantity } = req.body;
+    
+    if (quantity <= 0) {
+      throw new Error('Quantity must be greater than zero');
+    }
+
+    const sourceBalance = await InventoryBalance.findOne({ productId, locationId: fromLocationId }).session(session);
+    if (!sourceBalance || sourceBalance.onHand < quantity) {
+      throw new Error('Insufficient stock at source location');
+    }
+
+    // Decrease from source
+    await InventoryBalance.findOneAndUpdate(
+      { _id: sourceBalance._id },
+      { $inc: { onHand: -quantity } },
+      { session, returnDocument: 'after' }
+    );
+
+    // Increase at destination
+    let destBalance = await InventoryBalance.findOne({ productId, locationId: toLocationId }).session(session);
+    if (destBalance) {
+      await InventoryBalance.findOneAndUpdate(
+        { _id: destBalance._id },
+        { $inc: { onHand: quantity } },
+        { session, returnDocument: 'after' }
+      );
+    } else {
+      const toLocation = await Location.findById(toLocationId).session(session);
+      await InventoryBalance.create([{ 
+        productId, 
+        warehouseId: toLocation!.warehouseId, 
+        locationId: toLocationId, 
+        onHand: quantity 
+      }], { session });
+    }
+
+    await session.commitTransaction();
+    res.status(200).json({ message: 'Transfer successful' });
+  } catch (error: any) {
+    await session.abortTransaction();
+    res.status(400).json({ error: error.message || 'Transfer failed' });
+  } finally {
+    session.endSession();
   }
 };
 
