@@ -58,6 +58,20 @@ export const getStock = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const getAllBalances = async (req: AuthRequest, res: Response) => {
+  try {
+    const balances = await InventoryBalance.find()
+      .populate('productId', 'name sku uom category')
+      .populate('warehouseId', 'name code')
+      .populate('locationId', 'code name type')
+      .sort({ updatedAt: -1 });
+    res.status(200).json(balances);
+  } catch (error: any) {
+    console.error('Error fetching inventory balances:', error);
+    res.status(500).json({ error: 'Error fetching inventory balances' });
+  }
+};
+
 // Seeder endpoint for demo purposes
 export const seedInventory = async (req: AuthRequest, res: Response) => {
   try {

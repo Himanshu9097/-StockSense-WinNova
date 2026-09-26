@@ -19,6 +19,7 @@ import adjustmentRoutes from './routes/adjustments';
 import inventoryRoutes from './routes/inventory';
 import receivingRoutes from './routes/receiving';
 import deliveryRoutes from './routes/deliveries';
+import transferRoutes from './routes/transferRoutes';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -57,6 +58,7 @@ app.use('/api/adjustments', adjustmentRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/receiving', receivingRoutes);
 app.use('/api/deliveries', deliveryRoutes);
+app.use('/api/transfers', transferRoutes);
 
 app.listen(PORT, () => {
   console.log(`StockSense API running on port ${PORT}`);

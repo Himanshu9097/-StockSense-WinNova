@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getProducts, createProduct, getWarehouses, getLocations, getStock, seedInventory } from '../controllers/inventoryController';
+import { getProducts, createProduct, getWarehouses, getLocations, getStock, seedInventory, getAllBalances } from '../controllers/inventoryController';
 import { requireAuth } from '../middlewares/auth';
 
 const router = Router();
@@ -11,6 +11,7 @@ router.post('/products', createProduct as any);
 router.get('/warehouses', getWarehouses as any);
 router.get('/locations', getLocations as any);
 router.get('/stock', getStock as any);
+router.get('/balances', getAllBalances as any);
 router.post('/seed', seedInventory as any);
 
 export default router;
