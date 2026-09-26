@@ -10,6 +10,7 @@ import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import adjustmentRoutes from './routes/adjustments';
 import inventoryRoutes from './routes/inventory';
+import receivingRoutes from './routes/receiving';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -46,6 +47,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/adjustments', adjustmentRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/receiving', receivingRoutes);
 
 app.listen(PORT, () => {
   console.log(`StockSense API running on port ${PORT}`);

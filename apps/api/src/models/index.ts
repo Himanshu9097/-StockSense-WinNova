@@ -58,4 +58,7 @@ const passwordResetTokenSchema = new mongoose.Schema({
 
 export const PasswordResetToken = mongoose.model('PasswordResetToken', passwordResetTokenSchema);
 
+export * from './Product';
+export * from './Location';
 export * from './inventory';
+export * from './Receiving';

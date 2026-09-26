@@ -2,8 +2,11 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { User, Organization, Session, SecurityEvent, LoginAttempt, PasswordResetToken } from '../models';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_stock_sense_key';
-const REFRESH_SECRET = process.env.REFRESH_SECRET || 'super_secret_refresh_key';
+if (!process.env.JWT_SECRET || !process.env.REFRESH_SECRET) {
+  throw new Error('FATAL ERROR: JWT_SECRET and REFRESH_SECRET must be defined in environment.');
+}
+const JWT_SECRET = process.env.JWT_SECRET;
+const REFRESH_SECRET = process.env.REFRESH_SECRET;
 const JWT_EXPIRES_IN = '15m';
 const REFRESH_EXPIRES_IN = '7d';
 

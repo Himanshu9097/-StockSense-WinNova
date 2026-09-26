@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Adjustment, Stock, StockLedger, Product, Warehouse, Location } from '../models';
+import { Adjustment, InventoryBalance, StockLedger, Product, Warehouse, Location } from '../models';
 
 export class AdjustmentService {
   static async getAdjustments(filters: any = {}) {
@@ -8,14 +8,11 @@ export class AdjustmentService {
     if (filters.warehouseId) query.warehouseId = filters.warehouseId;
     if (filters.locationId) query.locationId = filters.locationId;
     if (filters.status) query.status = filters.status;
-    if (filters.search) {
-      // populate search could be complex, omitting for MVP simplicity
-    }
     
     return Adjustment.find(query)
       .populate('productId', 'name sku')
       .populate('warehouseId', 'name code')
-      .populate('locationId', 'name')
+      .populate('locationId', 'name code')
       .populate('createdBy', 'name email')
       .sort({ createdAt: -1 });
   }
@@ -47,23 +44,19 @@ export class AdjustmentService {
     session.startTransaction();
 
     try {
-      // 1. Fetch current stock (with lock in a real RDMS, using findOneAndUpdate in Mongo can simulate atomic update)
-      // Since Mongoose doesn't have true row locks without findOneAndUpdate, we will use optimistic approach
-      // or just find it and hope it's not changed in the split second, or use findOneAndUpdate with condition.
-      
       const location = await Location.findById(locationId).session(session);
       if (!location) throw new Error('Location not found');
       if (location.warehouseId.toString() !== warehouseId) {
         throw new Error('Location does not belong to selected warehouse');
       }
 
-      let stock = await Stock.findOne({ productId, locationId }).session(session);
+      let balance = await InventoryBalance.findOne({ productId, locationId }).session(session);
       
-      if (!stock) {
-        stock = new Stock({ productId, warehouseId, locationId, quantity: 0 });
+      if (!balance) {
+        balance = new InventoryBalance({ productId, warehouseId, locationId, onHand: 0 });
       }
 
-      const systemQuantity = stock.quantity;
+      const systemQuantity = balance.onHand;
       if (systemQuantity !== expectedSystemQuantity) {
         throw new Error('Stock changed since this adjustment was started. Please refresh and recount.');
       }
@@ -72,11 +65,9 @@ export class AdjustmentService {
         throw new Error('No adjustment required');
       }
 
-      // 5. Update inventory
-      stock.quantity = countedQuantity;
-      await stock.save({ session });
+      balance.onHand = countedQuantity;
+      await balance.save({ session });
 
-      // 7. Create adjustment record
       const adjustment = new Adjustment({
         productId,
         warehouseId,
@@ -91,17 +82,19 @@ export class AdjustmentService {
       });
       await adjustment.save({ session });
 
-      // 8. Create stock ledger entry
       const ledger = new StockLedger({
+        transactionId: `ADJ-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
         operation: 'ADJUSTMENT',
         productId,
-        warehouseId,
-        locationId,
-        previousQuantity: systemQuantity,
-        change: difference,
-        newQuantity: countedQuantity,
+        sourceLocationId: difference < 0 ? locationId : undefined,
+        destinationLocationId: difference > 0 ? locationId : undefined,
+        quantity: Math.abs(difference),
+        beforeQuantity: systemQuantity,
+        afterQuantity: countedQuantity,
+        referenceType: 'Adjustment',
+        referenceId: adjustment._id,
         reason,
-        userId
+        performedBy: userId
       });
       await ledger.save({ session });
 
@@ -116,3 +109,4 @@ export class AdjustmentService {
     }
   }
 }
+

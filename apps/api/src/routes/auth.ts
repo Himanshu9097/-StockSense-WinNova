@@ -24,8 +24,11 @@ import passport from '../config/passport';
 import jwt from 'jsonwebtoken';
 import { Session } from '../models';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_stock_sense_key';
-const REFRESH_SECRET = process.env.REFRESH_SECRET || 'super_secret_refresh_key';
+if (!process.env.JWT_SECRET || !process.env.REFRESH_SECRET) {
+  throw new Error('FATAL ERROR: JWT_SECRET and REFRESH_SECRET must be defined in environment.');
+}
+const JWT_SECRET = process.env.JWT_SECRET;
+const REFRESH_SECRET = process.env.REFRESH_SECRET;
 
 // Helper to issue tokens for OAuth users
 const handleOAuthSuccess = async (req: any, res: any) => {

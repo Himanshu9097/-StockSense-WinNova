@@ -2,11 +2,15 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
-import Dashboard from './pages/dashboard/Dashboard';
+import Dashboard from './pages/dashboard/Dashboard'; // Or keep it standalone and render it as is
 import ProtectedRoute from './components/ProtectedRoute';
-import Layout from './components/Layout';
+import MaterialLayout from './components/MaterialLayout';
 import Adjustments from './pages/adjustments/Adjustments';
 import NewAdjustment from './pages/adjustments/NewAdjustment';
+import Products from './pages/inventory/Products';
+import Locations from './pages/inventory/Locations';
+import Receipts from './pages/receiving/Receipts';
+import Putaway from './pages/receiving/Putaway';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 
@@ -22,9 +26,16 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            
             <Route element={<ProtectedRoute />}>
+              {/* Standalone Dashboard mapping for now, or wrapped in MaterialLayout */}
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route element={<Layout />}>
+              
+              <Route element={<MaterialLayout />}>
+                <Route path="/products" element={<Products />} />
+                <Route path="/locations" element={<Locations />} />
+                <Route path="/receipts" element={<Receipts />} />
+                <Route path="/putaway" element={<Putaway />} />
                 <Route path="/adjustments" element={<Adjustments />} />
                 <Route path="/adjustments/new" element={<NewAdjustment />} />
               </Route>

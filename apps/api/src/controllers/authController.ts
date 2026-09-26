@@ -2,9 +2,13 @@ import { Request, Response } from 'express';
 import { AuthService } from '../services/authService';
 import { EmailService } from '../services/emailService';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import { User } from '../models';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_stock_sense_key';
+if (!process.env.JWT_SECRET) {
+  throw new Error('FATAL ERROR: JWT_SECRET is not defined.');
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export const signup = async (req: Request, res: Response) => {
   try {
@@ -49,7 +53,38 @@ export const logout = async (req: Request, res: Response) => {
   res.status(200).json({ message: 'Logged out successfully' });
 };
 
-export const refresh = async (req: Request, res: Response) => { res.status(200).json({ message: 'Not implemented' }); };
+export const refresh = async (req: Request, res: Response) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) return res.status(401).json({ error: 'No refresh token' });
+
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET || 'super_secret_refresh_key') as any;
+    
+    // Check if session exists and is valid
+    const session = await mongoose.model('Session').findOne({ 
+      _id: decoded.sessionId || decoded.userId, // Fallback if no sessionId was encoded
+      refreshToken 
+    });
+    
+    if (!session || session.expiresAt < new Date() || session.revokedAt) {
+      return res.status(401).json({ error: 'Invalid or expired session' });
+    }
+
+    const user = await User.findById(session.userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const newAccessToken = jwt.sign(
+      { userId: user._id, sessionId: session._id, role: user.role }, 
+      JWT_SECRET, 
+      { expiresIn: '15m' }
+    );
+
+    res.status(200).json({ accessToken: newAccessToken });
+  } catch (err) {
+    res.status(401).json({ error: 'Invalid refresh token' });
+  }
+};
+
 export const verifyEmail = async (req: Request, res: Response) => { res.status(200).json({ message: 'Not implemented' }); };
 export const resendVerification = async (req: Request, res: Response) => { res.status(200).json({ message: 'Not implemented' }); };
 
@@ -71,7 +106,35 @@ export const forgotPassword = async (req: Request, res: Response) => {
   }
 };
 
-export const verifyOtp = async (req: Request, res: Response) => { res.status(200).json({ message: 'Not implemented' }); };
+export const verifyOtp = async (req: Request, res: Response) => { 
+  try {
+    const { email, otp } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ error: 'Invalid OTP' });
+
+    const resetToken = await mongoose.model('PasswordResetToken').findOne({ userId: user._id });
+    if (!resetToken || resetToken.expiresAt < new Date()) {
+      return res.status(400).json({ error: 'OTP expired or invalid' });
+    }
+
+    if (resetToken.attempts >= 3) {
+      return res.status(400).json({ error: 'Too many failed attempts.' });
+    }
+
+    const bcrypt = require('bcrypt');
+    const isValid = await bcrypt.compare(otp, resetToken.token);
+    
+    if (!isValid) {
+      resetToken.attempts += 1;
+      await resetToken.save();
+      return res.status(400).json({ error: 'Invalid OTP' });
+    }
+
+    res.status(200).json({ message: 'OTP verified successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to verify OTP' });
+  }
+};
 
 export const resetPassword = async (req: Request, res: Response) => {
   try {
@@ -119,5 +182,43 @@ export const getMe = async (req: Request, res: Response) => {
   }
 };
 
-export const getSessions = async (req: Request, res: Response) => { res.status(200).json({ message: 'Not implemented' }); };
-export const revokeSession = async (req: Request, res: Response) => { res.status(200).json({ message: 'Not implemented' }); };
+export const getSessions = async (req: Request, res: Response) => { 
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'No token' });
+    
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    
+    const Session = mongoose.model('Session');
+    const sessions = await Session.find({ userId: decoded.userId, revokedAt: null }).sort({ lastSeenAt: -1 });
+    
+    res.status(200).json(sessions);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to retrieve sessions' });
+  }
+};
+
+export const revokeSession = async (req: Request, res: Response) => { 
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'No token' });
+    
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    
+    const { id } = req.params;
+    const Session = mongoose.model('Session');
+    
+    const session = await Session.findOneAndUpdate(
+      { _id: id, userId: decoded.userId },
+      { revokedAt: new Date() }
+    );
+    
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+    
+    res.status(200).json({ message: 'Session revoked' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to revoke session' });
+  }
+};
